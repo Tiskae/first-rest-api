@@ -1,0 +1,25 @@
+{
+  "name": "rest-api",
+  "version": "1.0.0",
+  "description": "first rest api app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tiskae/first-rest-api.git"
+  },
+  "author": "tiskae",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tiskae/first-rest-api/issues"
+  },
+  "homepage": "https://github.com/tiskae/first-rest-api#readme",
+  "dependencies": {
+    "express": "^4.18.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.16"
+  }
+}
