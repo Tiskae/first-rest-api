@@ -1,31 +1,34 @@
 const { validationResult } = require("express-validator");
 const Post = require("../models/post");
 
-exports.getPost = (req, res, next) => {
-  res.status(200).json({
-    posts: [
-      {
-        _id: new Date().toISOString(),
-        title: "first post",
-        content: "This is a first post",
-        imageUrl: "/images/view.jpeg",
-        creator: {
-          name: "Blessing",
-        },
-        createdAt: new Date(),
-      },
-    ],
-  });
+exports.getPosts = (req, res, next) => {
+  Post.find()
+    .then((posts) => {
+      if (!posts) {
+        const error = new Error("No posts found!");
+        error.statusCode = 404;
+        throw error;
+      }
+      res.status(200).json({
+        message: "Posts fetched successfully!",
+        posts,
+      });
+    })
+    .catch((err) => {
+      if (!err.statusCode) {
+        err.statusCode = 500;
+      }
+      next(err);
+    });
 };
 
 exports.createPost = (req, res, next) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    return res.status(422).json({
-      message: "Validation failed, entered data is incorrect",
-      errors: errors.array(),
-    });
+    const error = new Error("Validation failed, entered data is incorrect");
+    error.statusCode = 422; // validation error
+    throw error;
   }
 
   const { title, content } = req.body;
@@ -44,5 +47,33 @@ exports.createPost = (req, res, next) => {
         post: result,
       });
     })
-    .catch(console.err);
+    .catch((err) => {
+      if (!err.statusCode) {
+        err.statusCode = 500;
+      }
+      next(err);
+    });
+};
+
+exports.getPost = (req, res, next) => {
+  const postId = req.params.postId;
+
+  Post.findById(postId)
+    .then((post) => {
+      if (!post) {
+        const postError = new Error("Could not find post");
+        postError.statusCode = 404;
+        throw postError;
+      }
+      res.status(200).json({
+        message: "Post fetched successfully!",
+        post,
+      });
+    })
+    .catch((err) => {
+      if (!error.statusCode) {
+        err.statusCode = 500;
+      }
+      next(err);
+    });
 };

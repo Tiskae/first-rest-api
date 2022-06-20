@@ -6,7 +6,7 @@ const feedController = require("../controllers/feed");
 const router = express.Router();
 
 // GET /feed/posts
-router.get("/posts", feedController.getPost);
+router.get("/posts", feedController.getPosts);
 
 // POST /feed/post
 router.post(
@@ -21,5 +21,8 @@ router.post(
   ],
   feedController.createPost
 );
+
+// GET /feed/post/:postId
+router.get("/post/:postId", feedController.getPost);
 
 module.exports = router;

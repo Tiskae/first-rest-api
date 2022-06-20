@@ -23,6 +23,13 @@ app.use((req, res, next) => {
 
 app.use("/feed", feedRouter);
 
+// Error handling middleware
+app.use((error, req, res, next) => {
+  const status = error.statusCode || 500;
+  const message = error.message;
+  res.status(status).json({ message });
+});
+
 mongoose
   .connect(
     "mongodb+srv://Tiskae:kispY5G7boRv24Zu@cluster0.irqruor.mongodb.net/messages?retryWrites=true&w=majority"
