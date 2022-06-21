@@ -4,6 +4,7 @@ const multer = require("multer");
 const bodyParser = require("body-parser");
 const path = require("path");
 
+const authRouter = require("./routes/auth");
 const feedRouter = require("./routes/feed");
 
 const app = express();
@@ -46,13 +47,15 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use("/auth", authRouter);
 app.use("/feed", feedRouter);
 
 // Error handling middleware
 app.use((error, req, res, next) => {
   const status = error.statusCode || 500;
-  const message = error.message;
-  res.status(status).json({ message });
+  const { message, data } = error;
+
+  res.status(status).json({ message, data });
 });
 
 mongoose
