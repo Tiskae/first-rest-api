@@ -1,4 +1,6 @@
 const express = require("express");
+const http = require("http");
+
 const mongoose = require("mongoose");
 const multer = require("multer");
 const bodyParser = require("body-parser");
@@ -8,6 +10,7 @@ const authRouter = require("./routes/auth");
 const feedRouter = require("./routes/feed");
 
 const app = express();
+const server = new http.createServer(app);
 
 const fileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -63,6 +66,17 @@ mongoose
     "mongodb+srv://Tiskae:kispY5G7boRv24Zu@cluster0.irqruor.mongodb.net/messages?retryWrites=true&w=majority"
   )
   .then((result) => {
-    app.listen(8080, () => console.log("Listening on 8080"));
+    server.listen(8080, () => {
+      console.log("Listening on http://localhost:8080");
+      const io = require("./socket").init(server);
+
+      io.on("connection", (socket) => {
+        console.log("Client connected!");
+
+        socket.on("disconnect", () => {
+          console.log("Client has disconnected!");
+        });
+      });
+    });
   })
   .catch(console.error);

@@ -1,10 +1,28 @@
 const fs = require("fs");
 const path = require("path");
 
+const io = require("../socket");
+
 const { validationResult } = require("express-validator");
 const Post = require("../models/post");
 const User = require("../models/user");
-const { pseudoRandomBytes } = require("crypto");
+
+exports.getStatus = async (req, res, next) => {
+  const userId = req.userId;
+  try {
+    const userStatus = await User.findById(userId).select("status -_id");
+
+    res.status(200).json({
+      message: "Fetched status successfully",
+      status: userStatus.status,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+      next(err);
+    }
+  }
+};
 
 exports.getPosts = async (req, res, next) => {
   const currentPage = req.query.page || 1;
@@ -12,10 +30,10 @@ exports.getPosts = async (req, res, next) => {
 
   try {
     const totalItems = await Post.find().countDocuments();
-    console.log(totalItems);
 
     const posts = await Post.find()
       .populate("creator")
+      .sort({ createdAt: -1 })
       .skip((currentPage - 1) * perPage)
       .limit(perPage);
 
@@ -32,7 +50,7 @@ exports.getPosts = async (req, res, next) => {
   }
 };
 
-exports.createPost = (req, res, next) => {
+exports.createPost = async (req, res, next) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -47,7 +65,6 @@ exports.createPost = (req, res, next) => {
   }
 
   const { title, content } = req.body;
-  let creator;
   const imageUrl = req.file.path;
   const post = new Post({
     title,
@@ -56,30 +73,29 @@ exports.createPost = (req, res, next) => {
     imageUrl,
   });
 
-  post
-    .save()
-    .then((result) => {
-      return User.findById(req.userId);
-    })
-    .then((user) => {
-      creator = user;
-      user.posts.push(post);
+  try {
+    await post.save();
+    const user = await User.findById(req.userId);
 
-      return user.save();
-    })
-    .then((result) => {
-      res.status(201).json({
-        message: "Post created successfully!",
-        post: post,
-        creator: { _id: creator._id, name: creator.name },
-      });
-    })
-    .catch((err) => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
+    user.posts.push(post);
+
+    await user.save();
+    io.getIO().emit("posts", {
+      action: "create",
+      post: { ...post._doc, creator: { _id: req.userId, name: user.name } },
     });
+
+    res.status(201).json({
+      message: "Post created successfully!",
+      post: post,
+      creator: { _id: user._id, name: user.name },
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };
 
 exports.getPost = (req, res, next) => {
@@ -131,6 +147,7 @@ exports.updatePost = (req, res, next) => {
   }
 
   Post.findById(postId)
+    .populate("creator")
     .then((post) => {
       if (!post) {
         const postError = new Error("Could not find post");
@@ -154,6 +171,11 @@ exports.updatePost = (req, res, next) => {
       return post.save();
     })
     .then((result) => {
+      io.getIO().emit("posts", {
+        action: "update",
+        post: result,
+      });
+
       res
         .status(200)
         .json({ message: "Post updated succesffully!", post: result });
@@ -193,6 +215,11 @@ exports.deletePost = (req, res, next) => {
       return user.save();
     })
     .then((result) => {
+      io.getIO().emit("posts", {
+        action: "delete",
+        post: postId,
+      });
+
       res.status(201).json({
         message: "Deleted post successfully",
       });
